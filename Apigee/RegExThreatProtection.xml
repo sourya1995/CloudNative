@@ -1,0 +1,7 @@
+<RegularExpressionProtection continueOnError="false" enabled="true" name="REP-SQLInjection">
+    <IgnoreUnresolvedVariables>false</IgnoreUnresolvedVariables>
+    <QueryParam name="test">
+        <Pattern>[\s]*(?i)((delete)|(exec)|(drop\s*table)|(insert)|(shutdown)|(update)|(\bor\b))</Pattern>
+    </QueryParam>
+    <Source>request</Source>
+</RegularExpressionProtection>

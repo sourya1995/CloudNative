@@ -1,0 +1,8 @@
+<JSONThreatProtection continueOnError="false" enabled="true" name="JTP-Protect">
+    <ArrayElementCount>3</ArrayElementCount>
+    <ContainerDepth>2</ContainerDepth>
+    <ObjectEntryCount>5</ObjectEntryCount>
+    <ObjectEntryNameLength>10</ObjectEntryNameLength>
+    <Source>request</Source>
+    <StringValueLength>20</StringValueLength>
+</JSONThreatProtection>

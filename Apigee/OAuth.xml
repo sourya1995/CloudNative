@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ProxyEndpoint name="default">
+  <DefaultFaultRule name="all">
+    <AlwaysEnforce>true</AlwaysEnforce>
+    <Step>
+      <Condition>
+                (fault.name = "UnSupportedGrantType") or 
+                (fault.name = "MissingParameter") or 
+                (fault.name = "InvalidTokenType") or 
+                (fault.name = "InvalidParameter") or 
+                (fault.name = "InvalidAPICallAsNo") or  
+                (fault.name = "ApiProductMatchFound") or  
+                (fault.name = "InvalidAccessToken") or 
+                (fault.name = "invalid_request") or 
+                (fault.name = "invalid_client") or
+                (fault.name = "InvalidClientIdentifier") or
+                (fault.name = "invalid_access_token") or
+                (fault.name = "InsufficientScope") or
+                (fault.name = "FailedToResolveToken") or
+                (fault.name = "FailedToResolveRefreshToken") or
+                (fault.name = "FailedToResolveClientId") or
+                (fault.name = "FailedToResolveAuthorizationCode") or
+                (fault.name = "FailedToResolveAccessToken") or
+                (fault.name = "apiresource_doesnot_exist") or
+                (fault.name = "access_token_not_approved") or
+                (fault.name = "access_token_expired")
+            </Condition>
+      <Name>AM-Assign-401-Error-Variables</Name>
+    </Step>
+    <Step>
+      <Name>AM-Set-Default-Error-Response</Name>
+    </Step>
+  </DefaultFaultRule>
+  <PreFlow name="PreFlow">
+    <Request>
+      <Step>
+        <Name>SA-Auth-Traffic-Smoother</Name>
+      </Step>
+    </Request>
+    <Response/>
+  </PreFlow>
+  <Flows>
+    <Flow name="POST /token cc grant">
+      <Description/>
+      <Request>
+        <Step>
+          <Name>OA2-Generate-Token-CC-Form</Name>
+        </Step>
+      </Request>
+      <Response>
+        <Step>
+          <Name>AM-Access-Token-Response-CC-Form</Name>
+        </Step>
+      </Response>
+      <Condition>(proxy.pathsuffix MatchesPath "/token") and (request.verb = "POST") and (request.formparam.grant_type = "client_credentials")</Condition>
+    </Flow>
+    <Flow name="Default 404">
+      <Description/>
+      <Request>
+        <Step>
+          <Name>AM-Assign-404-Error-Variables</Name>
+        </Step>
+        <Step>
+          <Name>RF-Empty-Fault</Name>
+        </Step>
+      </Request>
+      <Response/>
+    </Flow>
+  </Flows>
+  <PostFlow name="PostFlow">
+    <Request/>
+    <Response/>
+  </PostFlow>
+  <HTTPProxyConnection>
+    <BasePath>/oauth/v1</BasePath>
+  </HTTPProxyConnection>
+  <RouteRule name="noroute"/>
+</ProxyEndpoint>
+
+----Generate Token----
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<OAuthV2 continueOnError="false" enabled="true" name="OA2-Generate-Token-CC-Form">
+  <Description>RFC6759 - Section 4.4 Client Credentials Grant</Description>
+  <Operation>GenerateAccessToken</Operation>
+  <!-- in a production environment, 5 minutes (300000) would be better -->
+  <!-- this is 60 minutes (3600000) -->
+  <ExpiresIn>3600000</ExpiresIn>
+  <ExternalAuthorization>false</ExternalAuthorization>
+  <GenerateResponse enabled="false"/>
+  <SupportedGrantTypes>
+    <GrantType>client_credentials</GrantType>
+  </SupportedGrantTypes>
+</OAuthV2>

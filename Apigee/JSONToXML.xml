@@ -1,0 +1,11 @@
+<JSONToXML continueOnError="false" enabled="true" name="J2X-Convert">
+    <Options>
+        <InvalidCharsReplacement>_</InvalidCharsReplacement>
+        <ObjectRootElementName>response</ObjectRootElementName>
+        <Indent>true</Indent>
+    </Options>
+    <OutputVariable>response</OutputVariable>
+    <Source>response</Source>
+</JSONToXML>
+
+<Condition>request.header.Accept == "application/xml"</Condition> //at response

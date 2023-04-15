@@ -1,0 +1,23 @@
+<ExtractVariables continueOnError="false" enabled="true" name="EV-QueryParamTest">
+    <QueryParam name="user">
+        <Pattern ignoreCase="true">{username}</Pattern>
+    </QueryParam>
+    <QueryParam name="pw">
+        <Pattern ignoreCase="true">{private.password}</Pattern>
+    </QueryParam>
+    <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
+    <Source clearPayload="false">request</Source>
+</ExtractVariables>
+
+-----
+
+<ExtractVariables continueOnError="false" enabled="true" name="EV-QueryParamTest">
+    <QueryParam name="user">
+        <Pattern ignoreCase="true">{username}</Pattern>
+    </QueryParam>
+    <QueryParam name="pw">
+        <Pattern ignoreCase="true">{password}</Pattern>
+    </QueryParam>
+    <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
+    <Source clearPayload="false">request</Source>
+</ExtractVariables>

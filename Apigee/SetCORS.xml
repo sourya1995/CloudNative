@@ -1,0 +1,43 @@
+<RaiseFault continueOnError="false" enabled="true" name="RF-PreflightCORS">
+    <FaultResponse>
+        <Set>
+            <Headers>
+                <Header name="Access-Control-Allow-Origin">{request.header.Origin}</Header>
+                <Header name="Access-Control-Allow-Headers">apikey, content-type, origin, x-requested-with, accept</Header>
+                <Header name="Access-Control-Max-Age">-1</Header>
+                <Header name="Access-Control-Allow-Methods">GET, PATCH, PUT, POST, DELETE</Header>
+            </Headers>
+            <Payload/>
+            <StatusCode>200</StatusCode>
+            <ReasonPhrase>OK</ReasonPhrase>
+        </Set>
+    </FaultResponse>
+    <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
+</RaiseFault>
+
+-----
+            <Step>
+                <Condition>request.verb == "OPTIONS" AND request.header.Origin != null</Condition>
+                <Name>RF-PreflightCORS</Name>
+            </Step>
+
+<AssignMessage continueOnError="false" enabled="true" name="AM-SetCORSHeader">
+    <Set>
+        <Headers>
+            <Header name="Access-Control-Allow-Origin">{request.header.Origin}</Header>
+        </Headers>
+    </Set>
+    <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
+    <AssignTo createNew="false" transport="http" type="response"/>
+</AssignMessage>
+
+
+<AssignMessage continueOnError="false" enabled="true" name="AM-StripTargetCORS">
+    <Remove>
+        <Headers>
+            <Header name="Access-Control-Allow-Origin"/>
+        </Headers>
+    </Remove>
+    <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
+    <AssignTo createNew="false" transport="http" type="response"/>
+</AssignMessage>

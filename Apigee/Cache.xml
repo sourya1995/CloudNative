@@ -1,0 +1,35 @@
+<ResponseCache continueOnError="false" enabled="true" name="RC-ProductsCache">
+    <CacheResource>ProductsCache</CacheResource>
+    <Scope>Exclusive</Scope>
+    <CacheKey>
+        <KeyFragment ref="proxy.pathsuffix" type="string"/>
+    </CacheKey>
+    <ExpirySettings>
+        <TimeoutInSec>600</TimeoutInSec>
+    </ExpirySettings>
+    <SkipCacheLookup>request.verb != "GET"</SkipCacheLookup>
+    <SkipCachePopulation>request.verb != "GET"</SkipCachePopulation>
+</ResponseCache>
+
+<LookupCache continueOnError="false" enabled="true" name="LC-LookupAddress">
+    <CacheResource>AddressesCache</CacheResource>
+    <Scope>Exclusive</Scope>
+    <CacheKey>
+        <KeyFragment ref="lat"/>
+        <KeyFragment ref="lng"/>
+    </CacheKey>
+    <AssignTo>address</AssignTo>
+</LookupCache>
+
+<PopulateCache continueOnError="false" enabled="true" name="PC-PopulateAddress">
+    <CacheResource>AddressesCache</CacheResource>
+    <Scope>Exclusive</Scope>
+    <Source>address</Source>
+    <CacheKey>
+        <KeyFragment ref="lat"/>
+        <KeyFragment ref="lng"/>
+    </CacheKey>
+    <ExpirySettings>
+        <TimeoutInSec>3600</TimeoutInSec>
+    </ExpirySettings>
+</PopulateCache>

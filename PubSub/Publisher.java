@@ -1,5 +1,5 @@
 
-package com.google.training.appdev.services.gcp.pubsub;
+
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 

@@ -22,12 +22,6 @@ Parameters:
     Description: Thumbnail width in pixels 
     MinValue: 10
     MaxValue: 1000
-  ContactEmailAddress:
-    Type: String
-    Description: Email address for operational notifications 
-    Default: ''
-Conditions:
-  ContactEmailSet: !Not [ !Equals ['', !Ref ContactEmailAddress]]
 Resources:
   UploadS3Bucket:
     Type: AWS::S3::Bucket
@@ -86,6 +80,35 @@ Resources:
       Policies:
         - S3ReadPolicy:
             BucketName: !Ref ThumbnailsS3Bucket
+  ImageMagick:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location:
+        ApplicationId: arn:aws:serverlessrepo:us-east-1:*:applications/image-magick-lambda-layer
+        SemanticVersion: 1.0.0
+  ConvertFileFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: image-conversion/
+      Handler: index.handler
+      Runtime: nodejs12.x
+      Events:
+        FileUploaded:
+          Type: S3
+          Properties:
+            Bucket: !Ref UploadS3Bucket
+            Events: s3:ObjectCreated:*
+      Timeout: 600
+      MemorySize: 1024
+      Environment: 
+        Variables:
+          OUTPUT_BUCKET: !Ref ThumbnailsS3Bucket
+          THUMB_WIDTH: !Ref ThumbnailWidth
+      Policies:
+        - S3FullAccessPolicy:
+            BucketName: !Ref ThumbnailsS3Bucket
+      Layers:
+        - !GetAtt ImageMagick.Outputs.LayerVersion
   ConvertFunctionCanReadUploads:
     Type: AWS::IAM::Policy
     Properties: 
@@ -100,50 +123,6 @@ Resources:
               - !Sub "${UploadS3Bucket.Arn}/*"
       Roles:
         - !Ref ConvertFileFunctionRole
-  ConvertFileFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: image-conversion/
-      Handler: index.handler
-      Runtime: nodejs12.x
-      Events:
-        FileUploaded:
-          Type: S3
-          Properties:
-            Bucket: !Ref UploadS3Bucket
-            Events: s3:ObjectCreated:*
-      Timeout: 600
-      Environment: 
-        Variables:
-          OUTPUT_BUCKET: !Ref ThumbnailsS3Bucket
-          THUMB_WIDTH: !Ref ThumbnailWidth
-      Policies:
-        - S3FullAccessPolicy:
-            BucketName: !Ref ThumbnailsS3Bucket
-      DeadLetterQueue:
-        Type: SNS
-        TargetArn: !Ref NotifyAdmins
-  NotifyAdmins:
-    Type: AWS::SNS::Topic
-  ConvertFunctionCanSendDeadLetters:
-    Type: AWS::IAM::Policy
-    Properties: 
-      PolicyName: ConvertFunctionCanSendDeadLetters
-      Roles:
-        - !Ref ConvertFileFunctionRole      
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Action: 'sns:Publish'
-            Resource: !Ref NotifyAdmins
-  AlarmNotifyOpsSubscription:
-    Type: AWS::SNS::Subscription
-    Condition: ContactEmailSet 
-    Properties:
-      Endpoint: !Ref ContactEmailAddress
-      Protocol: email
-      TopicArn: !Ref NotifyAdmins
 Outputs:
   UserFormApi:
     Description: "API Gateway endpoint URL"
@@ -154,3 +133,16 @@ Outputs:
   ThumbnailsS3Bucket:
     Description: "S3 Bucket for thumbnails"
     Value: !Ref ThumbnailsS3Bucket
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: image-thumbnails
+    Description: >
+      A sample application for the Running Serverless book tutorial
+    Author: Gojko Adzic
+    SemanticVersion: 1.0.0
+    SpdxLicenseId: MIT
+    LicenseUrl: LICENSE.md
+    ReadmeUrl: README.md 
+    Labels: ['layer', 'image', 'lambda', 'imagemagick']
+    HomePageUrl: https://runningserverless.com
+    SourceCodeUrl: https://runningserverless.com

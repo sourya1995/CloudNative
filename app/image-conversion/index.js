@@ -4,7 +4,9 @@ const path = require('path'),
     extractS3Info = require('./extract-s3-info'),
     silentRemove = require('./silent-remove'),
     OUTPUT_BUCKET = process.env.OUTPUT_BUCKET,
-    supportedFormats = ['jpg', 'png', 'gif', 'jpeg'];
+    supportedFormats = ['jpg', 'png', 'gif', 'jpeg'],
+    THUMB_WIDTH = process.env.THUMB_WIDTH,
+  childProcessPromise = require('./child-process-promise');
 
 exports.handler = async (event, context) => {
     const s3Info = extractS3Info(event),
@@ -19,6 +21,10 @@ exports.handler = async (event, context) => {
     }
 
     await s3Util.downloadFileFromS3(s3Info.bucket, s3Info.key, tempFile)
+    await childProcessPromise.spawn(
+        '/opt/bin/mogrify',
+        ['-thumbnail', `${THUMB_WIDTH}x`, tempFile],
+      );
     await s3Util.uploadFileToS3(OUTPUT_BUCKET, s3Info.key, tempFile, contentType)
     await silentRemove(tempFile);
 };

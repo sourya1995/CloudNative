@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Upload files to S3 
+Description: Create thumbnails from files uploaded to S3 
 Parameters:
   AppStage:
     Type: String
@@ -16,8 +16,27 @@ Parameters:
     Description: Maximum upload size in megabytes
     MinValue: 1
     MaxValue: 100
+  ThumbnailWidth:
+    Type: Number 
+    Default: 300
+    Description: Thumbnail width in pixels 
+    MinValue: 10
+    MaxValue: 1000
+  ContactEmailAddress:
+    Type: String
+    Description: Email address for operational notifications 
+    Default: ''
+Conditions:
+  ContactEmailSet: !Not [ !Equals ['', !Ref ContactEmailAddress]]
 Resources:
   UploadS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+  ThumbnailsS3Bucket:
     Type: AWS::S3::Bucket
     Properties:
       BucketEncryption:
@@ -63,10 +82,68 @@ Resources:
             RestApiId: !Ref WebApi
       Environment: 
         Variables:
-          UPLOAD_S3_BUCKET: !Ref UploadS3Bucket
+          UPLOAD_S3_BUCKET: !Ref ThumbnailsS3Bucket
       Policies:
         - S3ReadPolicy:
-            BucketName: !Ref UploadS3Bucket
+            BucketName: !Ref ThumbnailsS3Bucket
+  ConvertFunctionCanReadUploads:
+    Type: AWS::IAM::Policy
+    Properties: 
+      PolicyName: ConvertFunctionCanReadUploads
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - "s3:GetObject"
+            Resource: 
+              - !Sub "${UploadS3Bucket.Arn}/*"
+      Roles:
+        - !Ref ConvertFileFunctionRole
+  ConvertFileFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: image-conversion/
+      Handler: index.handler
+      Runtime: nodejs12.x
+      Events:
+        FileUploaded:
+          Type: S3
+          Properties:
+            Bucket: !Ref UploadS3Bucket
+            Events: s3:ObjectCreated:*
+      Timeout: 600
+      Environment: 
+        Variables:
+          OUTPUT_BUCKET: !Ref ThumbnailsS3Bucket
+          THUMB_WIDTH: !Ref ThumbnailWidth
+      Policies:
+        - S3FullAccessPolicy:
+            BucketName: !Ref ThumbnailsS3Bucket
+      DeadLetterQueue:
+        Type: SNS
+        TargetArn: !Ref NotifyAdmins
+  NotifyAdmins:
+    Type: AWS::SNS::Topic
+  ConvertFunctionCanSendDeadLetters:
+    Type: AWS::IAM::Policy
+    Properties: 
+      PolicyName: ConvertFunctionCanSendDeadLetters
+      Roles:
+        - !Ref ConvertFileFunctionRole      
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: 'sns:Publish'
+            Resource: !Ref NotifyAdmins
+  AlarmNotifyOpsSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: ContactEmailSet 
+    Properties:
+      Endpoint: !Ref ContactEmailAddress
+      Protocol: email
+      TopicArn: !Ref NotifyAdmins
 Outputs:
   UserFormApi:
     Description: "API Gateway endpoint URL"
@@ -74,3 +151,6 @@ Outputs:
   UploadBucket:
     Description: "S3 Bucket for user information"
     Value: !Ref UploadS3Bucket
+  ThumbnailsS3Bucket:
+    Description: "S3 Bucket for thumbnails"
+    Value: !Ref ThumbnailsS3Bucket

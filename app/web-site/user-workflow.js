@@ -5,9 +5,21 @@ async function getSignatures(apiUrl) {
         throw 'please provide a valid URL';
     }
 
-    const response = await fetch(apiUrl);
-    return response.json();
-}
+    if (!extension) {
+        throw 'please provide a valid extension';
+    }
+
+
+
+    const response = await fetch(`${apiUrl}sign/${extension}`);
+    if (response.ok) {
+        return response.json();
+    } else {
+        const error = await response.text();
+        throw error;
+    }
+
+};
 
 function postFormData(url, formData, progress) {
     return new Promise((resolve, reject) => {
@@ -32,7 +44,7 @@ function postFormData(url, formData, progress) {
                 reject(request.responseText);
             }
         });
-        request.addEventListener('error', e =>
+        request.addEventListener('error', e =
             sendError(e, 'server error')
         );
         request.addEventListener('abort', e =>
@@ -128,6 +140,10 @@ async function startUpload(evt) {
     if (file && file.name) {
         picker.value = ' ';
         try {
+            const extension = file.name.replace(/.+\./g, '');
+            if (!extension) {
+                throw `${file.name} has no extension`;
+            }
             showStep('uploading');
             const signatures = await getSignatures(apiUrl);
             console.log('got signatures', signatures);

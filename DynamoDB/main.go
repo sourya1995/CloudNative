@@ -72,3 +72,53 @@ func CreateTableOnDemand(tableName string, svc dynamodbiface.DynamoDB) {
 	svc.WaitUntilTableExists(&description)
 	fmt.Printf("CREATING:\n Table ARN: %s \n, Table name: %s \n",*output.TableDescription.TableArn, *output.TableDescription.TableName)
 }
+
+func CreateRecord(tableName string, svc dynamodbiface.DynamoDBAPI){
+	input := &dynamodb.PutItemInput{
+		TableName: aws.String(tableName),
+		Item: map[string]*dynamodb.AttributeValue{
+			"partitionkey": {
+				S: aws.String("test"),
+			}
+			"sortkey": {
+				S: aws.String("2022"),
+			},
+
+		},
+	}
+
+	_, err := svc.PutItem(input)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println("Result created successfully")
+}
+
+func QueryRecord(tableName string, svc dynamodbiface.DynamoDBAPI){
+	keyCond := expression.KeyAnd(
+		expression.Key("partitionkey").Equal(expression.Value("test")),
+		expression.Key("sortkey").BeginsWith("2"),
+	)
+
+	expr, err := expression.NewBuilder().
+		WithKeyCondition(keyCond).
+		Build()
+
+	query := &dynamodb.QueryInput {
+		ExpressionAttributeNames: expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		KeyConditionExpression: expr.KeyCondition(),
+		TableName: aws.String(tableName),
+	}
+
+	output, err := svc.Query(query)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println("Result querying record: ")
+	for _, v := range output.Items {
+		fmt.Printf("value: %s \n", v)
+	}
+}

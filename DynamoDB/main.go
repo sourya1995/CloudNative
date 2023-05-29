@@ -24,6 +24,7 @@ func main() {
 	CreateTableOnDemand(TableName, svc)
 	CreateRecord(TableName, svc)
 	QueryRecord(TableName, svc)
+	CreateTableLsi(TableName, svc)
 }
 
 func CreateSession() dynamodbiface.DynamoDBAPI {
@@ -121,4 +122,73 @@ func QueryRecord(tableName string, svc dynamodbiface.DynamoDBAPI){
 	for _, v := range output.Items {
 		fmt.Printf("value: %s \n", v)
 	}
+}
+
+func CreateTableLsi(tableName string, svc dynamodbiface.DynamoDBAPI) {
+	fmt.Println("Creating table LSI...")
+	billingMode := "PAY_PER_REQUEST"
+
+	params := &dynamodb.CreateTableInput{
+		TableName: aws.String(tableName),
+
+		AttributeDefinitions: []*dynamodb.AttributeDefinition{
+			{
+				AttributeName: aws.String("id-sdk"),
+				AttributeType: aws.String("S"),
+
+			},
+
+			{
+				AttributeName: aws.String("name"),
+				AttributeType: aws.String("S"),
+			},
+			{
+				AttributeName: aws.String("date"),
+				AttributeType: aws.String("S"),
+			},
+		},
+
+		KeySchema: []*dynamodb.KeySchemaElement{
+			{
+				AttributeName: aws.String("id-sdk"),
+				KeyType: aws.String("HASH"),
+			},
+			{
+				AttributeName: aws.String("name"),
+				keyType: aws.String("RANGE"),
+			},
+		},
+
+		LocalSecondaryIndexes: []*dynamodb.LocalSecondaryIndex {
+			{
+				IndexName: aws.String("my-index-from-sdk"),
+				KeySchema: []*dynamodb.KeySchemaElement{
+					{
+						AttributeName: aws.String("id-sdk"),
+						KeyType: aws.String("HASH"),
+					},
+					{
+						AttributeName: aws.String("date"),
+						KeyType: aws.String("RANGE"),
+					},
+				},
+
+				Projection: &dynamodb.Projection{
+					ProjectionType: aws.String("KEYS_ONLY"),
+
+				},
+
+			},
+		},
+		BillingMode: &billingMode,
+
+	}
+
+	output, err := svc.CreateTable(params)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println("Result:")
+	fmt.Println(output)
+	fmt.Println("LSI created successfully")
 }

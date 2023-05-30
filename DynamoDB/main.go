@@ -283,3 +283,52 @@ func CreateTableGsi(tableName string, svc dynamodbiface.DynamoDBAPI){
 
 	fmt.Println("finished")
 }
+
+func getItemsInTransaction(tableName string, svc dynamodbiface.DynamoDBAPI) {
+	getItems := dynamodb.TransactGetItemsInput {
+		TransactItems : []*dynamodb.TransactGetItem {
+			{
+				Get: &dynamodb.Get {
+					TableName: aws.String(tableName),
+					Key: map[string]*dynamodb.AttributeValue{
+						"partitionkey": {
+							S: aws.String("test"),
+						},
+						"sortkey": {
+							S: aws.String("2022"),
+						},
+					},
+				},
+			},
+		},
+	},
+
+	output, _ := svc.TransactGetItems(&getItems)
+	fmt.Println(output)
+}
+
+func writeItemsInTransaction(tableName string, svc dynamodbiface.DynamoDBAPI) {
+	Item := map[string]*dynamodb.AttributeValue {
+		"partitionkey" : {
+			S: aws.String("test"),
+		},
+		"sortkey": {
+			S: aws.String("2022"),
+		},
+		"active": {
+			BOOL: aws.Bool(false),
+		},
+	} //map of strings and instance of results from DynamoDB
+
+	putItem := dynamodb.TransactWriteItem {
+		Put: &dynamodb.Put{
+			TableName: aws.String(tableName),
+			ConditionExpression: aws.String("attribute_not_exists(pk_id) AND attribute_not_exists(version)"),
+			Item: Item,
+		},
+	} //condition to write the item, based on a struct
+
+	writeItems := []*dynamodb.TransactWriteItem{&putItem} //generating a slice of items to write
+	_, _ = svc.TransactWriteItems(&dynamodb.TransactWriteItemsInput{TransactItems: writeItems}) 
+	fmt.Println("item put successfully")
+}

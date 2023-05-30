@@ -60,6 +60,18 @@ func CreateTableOnDemand(tableName string, svc dynamodbiface.DynamoDB) {
 			AttributeType: aws.String("S")
 		},
 		},
+
+		KeySchema: []*dynamodb.KeySchemaElement{
+			{
+				AttributeName: aws.String("id-sdk"),
+				KeyType: aws.String("HASH"),
+			},
+			{
+				AttributeName: aws.String("name"),
+				KeyType: aws.String("RANGE"),
+			},
+		},
+
 		BillingMode := &billingMode,
 	}
 	output, err := svc.CreateTable(params)

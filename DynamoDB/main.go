@@ -192,3 +192,82 @@ func CreateTableLsi(tableName string, svc dynamodbiface.DynamoDBAPI) {
 	fmt.Println(output)
 	fmt.Println("LSI created successfully")
 }
+
+func CreateTableGsi(tableName string, svc dynamodbiface.DynamoDBAPI){
+	fmt.Println("Creating GSI...")
+	billingMode := "PROVISIONED"
+
+	params := &dynamodb.CreateTableInput {
+		TableName: aws.String(tableName),
+
+		AttributeDefinitions: []*dynamodb.AttributeDefinition{
+			{
+				AttributeName: aws.String("id-sdk"),
+				AttributeType: aws.String("S"),
+			},
+			{
+				AttributeName: aws.String("name"),
+				AttributeType: aws.String("S"),
+			},
+			{
+				AttributeName: aws.String("date"),
+				AttributeType: aws.String("S"),
+			},
+		},
+
+		KeySchema: []*dynamodb.KeySchemaElement{
+			{
+				AttributeName: aws.String("id-sdk"),
+				KeyType: aws.String("HASH"),
+			},
+			{
+				AttributeName: aws.String("name"),
+				KeyType: aws.String("RANGE"),
+			},
+
+		},
+
+		GlobalSecondaryIndexes: []* dynamodb.GlobalSecondaryIndex{
+			{
+				IndexName: aws.String("gsi-from-sdk"),
+				KeySchema: []*dynamodb.KeySchemaElement{
+					{
+						AttributeName: aws.String("id-sdk"),
+						KeyType: aws.String("HASH"),
+					},
+					{
+						AttributeName: aws.String("date"),
+						KeyType: aws.String("RANGE"),
+					},
+				},
+				Projection: &dynamodb.Projection{
+					ProjectionType: aws.String("ALL"),
+				},
+				ProvisionedThroughput: &dynamodb.ProvisionedThroughput {
+					ReadCapacityUnits: aws.Int64(1),
+					WriteCapacityUnits: aws.Int64(1),
+				},
+
+			},
+		},
+
+		BillingMode: &billingMode,
+		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
+			ReadCapacityUnits: aws.Int64(10),
+			WriteCapacityUnits: aws.Int64(5),
+		}
+
+
+
+	}
+
+	output, err := svc.CreateTable(params)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println("Result: ")
+	fmt.Println(output)
+
+	fmt.Println("finished")
+}

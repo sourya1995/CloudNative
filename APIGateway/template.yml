@@ -1,0 +1,4 @@
+x-amazon-apigateway-integration:
+  httpmethod: "GET"
+  uri: "http://icanhazdadjoke.com"
+  type: "http"

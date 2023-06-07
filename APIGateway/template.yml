@@ -7,19 +7,6 @@ Parameters:
     Type: String
     Default: afsf34sfdg
 Resources:
-  AuthorizerLambda:
-    Type: AWS::Lambda::Function
-    Properties:
-      Handler: index.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      FunctionName: AuthorizerLambda
-      Code:
-        S3Bucket:
-          Ref: SourceCodeBucket
-        S3Key: !Sub "${DeployId}.zip"
-      Runtime: nodejs16.x
-      Timeout: 3
-      MemorySize: 128
   RestAPI:
     Type: AWS::ApiGateway::RestApi
     Properties:
@@ -33,8 +20,19 @@ Resources:
           description: "Rest API for Educative API Gateway Course"
           version: "2022-06-06T10:08:49Z"
         paths:
-          /joke:
+          /:
             get:
+              parameters:
+                - name: "token"
+                  in: "query"
+                  required: true
+                  schema:
+                    type: "string"
+                - name: "customheader"
+                  in: "header"
+                  required: true
+                  schema:
+                    type: "string"
               responses:
                 "200":
                   description: "200 response"
@@ -42,14 +40,19 @@ Resources:
                     application/json:
                       schema:
                         $ref: "#/components/schemas/Empty"
-              security:
-                - authorizer: []
+              x-amazon-apigateway-request-validator: "Validate query string parameters and\
+                \ headers"
               x-amazon-apigateway-integration:
-                httpMethod: "GET"
-                uri: "https://icanhazdadjoke.com"
+                httpMethod: "POST"
+                uri: "https://public.krazyminds.com/headers"
                 responses:
                   default:
                     statusCode: "200"
+                requestParameters:
+                  integration.request.path.ip: "context.identity.sourceIp"
+                  integration.request.header.customheader: "method.request.header.customheader"
+                  integration.request.header.token: "method.request.querystring.token"
+                  integration.request.header.Content-Type: "'application/json'"
                 passthroughBehavior: "when_no_match"
                 type: "http"
         components:
@@ -57,52 +60,9 @@ Resources:
             Empty:
               title: "Empty Schema"
               type: "object"
-          securitySchemes:
-            authorizer:
-              type: "apiKey"
-              name: "authorization"
-              in: "header"
-              x-amazon-apigateway-authtype: "custom"
-              x-amazon-apigateway-authorizer:
-                authorizerUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:AuthorizerLambda/invocations"
-                authorizerCredentials: !GetAtt LambdaExecutionRole.Arn
-                authorizerResultTtlInSeconds: 300
-                type: "token"
       Name: EducativeRestAPI
       Description: "Rest API for Educative API Gateway Course"
       Mode: overwrite
-  LambdaExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: EducativeLambdaRole
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-                - apigateway.amazonaws.com
-            Action:
-              - sts:AssumeRole
-      Path: "/"
-      Policies:
-        - PolicyName: logs
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - logs:*
-                Resource: arn:aws:logs:*:*:*
-        - PolicyName: lambda
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - lambda:InvokeFunction
-                Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:AuthorizerLambda"
   APIDeployment:
     Type: AWS::ApiGateway::Deployment
     Properties:

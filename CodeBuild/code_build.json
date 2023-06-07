@@ -1,0 +1,19 @@
+{
+    "name": "code-build-sample",
+    "description": "Run a sample codebuild project",
+    "source": {
+        "type": "GITHUB",
+        "location": "https://github.com/sakeyehp/CodeDeployTask.git",
+        "buildspec": "buildspec.yml"
+    }, //git repo
+    "artifacts": {
+        "type": "S3",
+        "location": "<bucket-name>"
+    }, //artifact location
+    "environment": {
+        "type": "LINUX_CONTAINER",
+        "image": "aws/codebuild/amazonlinux2-x86_64-standard:3.0",
+        "computeType": "BUILD_GENERAL1_SMALL"
+    },
+    "serviceRole": "CodeBuildRole"
+}

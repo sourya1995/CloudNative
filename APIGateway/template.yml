@@ -22,17 +22,6 @@ Resources:
         paths:
           /:
             get:
-              parameters:
-                - name: "token"
-                  in: "query"
-                  required: true
-                  schema:
-                    type: "string"
-                - name: "customheader"
-                  in: "header"
-                  required: true
-                  schema:
-                    type: "string"
               responses:
                 "200":
                   description: "200 response"
@@ -40,21 +29,18 @@ Resources:
                     application/json:
                       schema:
                         $ref: "#/components/schemas/Empty"
-              x-amazon-apigateway-request-validator: "Validate query string parameters and\
-                \ headers"
               x-amazon-apigateway-integration:
-                httpMethod: "POST"
-                uri: "https://public.krazyminds.com/headers"
+                type: "http"
+                httpMethod: "GET"
+                uri: "https://ipinfo.io/{ip}"
+                requestParameters:
+                  integration.request.path.ip: "context.identity.sourceIp"
                 responses:
                   default:
                     statusCode: "200"
-                requestParameters:
-                  integration.request.path.ip: "context.identity.sourceIp"
-                  integration.request.header.customheader: "method.request.header.customheader"
-                  integration.request.header.token: "method.request.querystring.token"
-                  integration.request.header.Content-Type: "'application/json'"
+                    responseTemplates:
+                      application/json: "#set($inputRoot = $input.path('$'))\n{\"address\": \"$inputRoot.city, $inputRoot.region, $inputRoot.country, $inputRoot.postal\"}"
                 passthroughBehavior: "when_no_match"
-                type: "http"
         components:
           schemas:
             Empty:

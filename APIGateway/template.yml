@@ -1,12 +1,42 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Parameters:
-  DeployId:
-    Type: String
-    Default: afsf34sfdg
-  SourceCodeBucket:
-    Type: String
-    Default: afsf34sfdg
 Resources:
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ExecutionRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: logs
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:*
+                Resource: arn:aws:logs:*:*:*
+        - PolicyName: sqs
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                Resource: !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:educative-queue"
+  Queue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: educative-queue
   RestAPI:
     Type: AWS::ApiGateway::RestApi
     Properties:
@@ -30,17 +60,37 @@ Resources:
                       schema:
                         $ref: "#/components/schemas/Empty"
               x-amazon-apigateway-integration:
-                type: "http"
+                credentials: "arn:aws:iam::${AWS::AccountId}:role/ExecutionRole"
                 httpMethod: "GET"
-                uri: "https://ipinfo.io/{ip}"
-                requestParameters:
-                  integration.request.path.ip: "context.identity.sourceIp"
+                uri: "arn:aws:apigateway:${AWS::Region}:sqs:path//${AWS::AccountId}/educative-queue"
                 responses:
                   default:
                     statusCode: "200"
-                    responseTemplates:
-                      application/json: "#set($inputRoot = $input.path('$'))\n{\"address\": \"$inputRoot.city, $inputRoot.region, $inputRoot.country, $inputRoot.postal\"}"
+                requestParameters:
+                  integration.request.querystring.Action: "'ReceiveMessage'"
                 passthroughBehavior: "when_no_match"
+                type: "aws"
+            post:
+              responses:
+                "200":
+                  description: "200 response"
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/Empty"
+              x-amazon-apigateway-integration:
+                credentials: "arn:aws:iam::${AWS::AccountId}:role/ExecutionRole"
+                httpMethod: "POST"
+                uri: "arn:aws:apigateway:${AWS::Region}:sqs:path//${AWS::AccountId}/educative-queue"
+                responses:
+                  default:
+                    statusCode: "200"
+                requestParameters:
+                  integration.request.header.Content-Type: "'application/x-www-form-urlencoded'"
+                requestTemplates:
+                  application/json: "Action=SendMessage&MessageBody=$input.body"
+                passthroughBehavior: "when_no_templates"
+                type: "aws"
         components:
           schemas:
             Empty:
